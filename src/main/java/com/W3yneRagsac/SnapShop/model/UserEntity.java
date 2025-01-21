@@ -3,7 +3,8 @@ package com.W3yneRagsac.SnapShop.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 
 @Data
 @Entity
@@ -20,6 +21,27 @@ public class UserEntity {
 
     private String password;
 
-    private LocalTime createdAt = LocalTime.now();
-    private LocalTime updatedAt = LocalTime.now();
+    @Transient
+    private String confirmPassword;
+
+    private Boolean isPresent;
+
+    // OffsetDateTime to store date, time, and timezone information
+    @Column(name = "created_at")
+    private OffsetDateTime createdAt;
+
+    @Column(name = "updated_at")
+    private OffsetDateTime updatedAt;
+
+    @PrePersist
+    public void prePersist() {
+        OffsetDateTime now = OffsetDateTime.now(ZoneOffset.UTC);
+        this.createdAt = now;
+        this.updatedAt = now;
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        this.updatedAt = OffsetDateTime.now(ZoneOffset.UTC);
+    }
 }
