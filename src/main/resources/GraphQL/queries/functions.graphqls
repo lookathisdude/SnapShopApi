@@ -1,0 +1,28 @@
+# Query for fetching a user by name or email
+type Query {
+    #Users
+    getUserByName(input: getByNameInput): User!
+    getUserByEmail(input: getByEmailInput): User!
+
+    #Products
+    getProductById(input:getProductByIdDTO): Product!
+    getProductByName(input: getProductByNameDTO): Product!
+}
+
+# Mutations for user-related operations
+type Mutation {
+    #User functions
+    createUser(input: CreateUserInput!): User!
+    updateUser(input: UpdateUserInput!): User!
+    updateEmail(input: UpdateEmailInput!): User!
+    updatePassword(input: UpdatePasswordInput!): User!
+    deleteUser(input: DeleteUserInput!): User!
+
+    #Product functions
+    createProduct(id: ID! input: createProductDTO): Product!
+    updatedProduct(id: ID! input: updateProductDTO): Product!
+    deleteProduct(id: ID!): Product!
+}
+
+# Scalar for DateTime
+scalar DateTime

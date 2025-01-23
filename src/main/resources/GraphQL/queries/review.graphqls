@@ -1,0 +1,21 @@
+# Review type with more fields
+type Review {
+    id: ID!
+    content: String!
+    rating: Int!
+    userId: ID!
+    productId: ID!
+    createdAt: String!
+    updatedAt: String
+    user: User
+    product: Product
+    isVerified: Boolean!
+    helpfulCount: Int
+}
+
+# Input type for creating or updating a review
+input ReviewInput {
+    content: String!
+    rating: Int!
+    productId: ID!
+}

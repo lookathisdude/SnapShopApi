@@ -1,0 +1,62 @@
+#types
+type Product {
+    id: ID!
+    name: String!
+    description: String
+    price: Float!
+    currency: String!
+    category: String
+    stock: Int!
+    image: [String]
+    tags: [String]
+    rating: Float
+    reviews: [Review]
+    createdAt: String!
+    updatedAt: String!
+    seller: Seller
+    relatedProducts: [Product]
+}
+
+type Seller {
+    name: String!
+    description: String!
+    dateOfCreation: String!
+}
+
+input getProductByIdDTO{
+    productId: ID!
+}
+
+input getProductByNameDTO{
+    productName: String!
+}
+
+input createProductDTO{
+    productName: String!
+    productDescription: String!
+    price: Float!
+    currency: String!
+    category: String
+    stock: Int!
+    image: [String]
+    tags: [String]
+}
+
+ input updateProductDTO{
+     productName: String
+     productDescription: String
+     price: Float
+     currency: String
+     category: String
+     stock: Int
+     image: [String]
+     tags: [String]
+}
+
+input getProductByIDDTO{
+
+}
+
+input getProductByNameDTO {
+
+}
