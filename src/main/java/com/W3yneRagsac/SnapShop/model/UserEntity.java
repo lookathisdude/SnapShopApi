@@ -5,6 +5,8 @@ import lombok.Data;
 
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.HashSet;
+import java.util.Set;
 
 @Data
 @Entity
@@ -32,6 +34,9 @@ public class UserEntity {
 
     @Column(name = "updated_at")
     private OffsetDateTime updatedAt;
+
+    @ManyToMany(fetch = FetchType.EAGER)
+    private Set<RoleEntity> roles = new HashSet<>();
 
     @PrePersist
     public void prePersist() {

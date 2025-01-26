@@ -6,116 +6,164 @@ import com.W3yneRagsac.SnapShop.exceptions.UserFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.UserNotFoundException;
 import com.W3yneRagsac.SnapShop.model.UserEntity;
 import com.W3yneRagsac.SnapShop.service.classes.UserService;
+import graphql.GraphQLException;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.graphql.data.method.annotation.MutationMapping;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
+import org.springframework.graphql.data.method.annotation.SchemaMapping;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
+
+import java.security.Principal;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Controller
 public class UserResolver {
 
     private static final Logger logger = LoggerFactory.getLogger(UserResolver.class);
 
+
+    private final PasswordEncoder passwordEncoder;
+
+    private final UserService userService;
+
     @Autowired
-    private UserService userService;
-
-    @QueryMapping
-    @PreAuthorize("hasRole('W3YNER$gsA3_admin')")
-    public UserEntity getUserByName(@Argument("input") GetByNameDTO getByNameDTO) throws UserNotFoundException {
-        if (getByNameDTO == null || getByNameDTO.getName() == null || getByNameDTO.getName().isEmpty()) {
-            throw new IllegalStateException("Input object or name cannot be null or empty");
-        }
-
-        logger.info("Fetching user by name: {}", getByNameDTO.getName());
-        return userService.findUserByName(getByNameDTO.getName())
-                .orElseThrow(() -> new UserNotFoundException("User with name: " + getByNameDTO.getName() + " not found."));
+    public UserResolver(PasswordEncoder passwordEncoder, UserService userService) {
+        this.passwordEncoder = passwordEncoder;
+        this.userService = userService;
     }
 
-    @QueryMapping
-    @PreAuthorize("hasRole('W3YNER$gsA3_admin')")
-    public UserEntity getUserByEmail(@Argument("input") @Valid GetByEmailDTO getByEmailDTO) throws EmailNotFoundException {
-        if (getByEmailDTO == null || getByEmailDTO.getEmail() == null || getByEmailDTO.getEmail().isEmpty()) {
-            throw new IllegalStateException("Input email cannot be null or empty");
-        }
 
-        String email = getByEmailDTO.getEmail();
-        logger.info("Fetching user by email: {}", email);
-        return userService.findByEmail(email)
-                .orElseThrow(() -> new EmailNotFoundException("User with email: " + email + " not found."));
+    // Verify the user's role
+    private void checkRole(Principal principal, String role) {
+        if (principal instanceof Authentication) {
+            Authentication authentication = (Authentication) principal;
+            boolean hasRole = authentication.getAuthorities().stream()
+                    .anyMatch(auth -> auth.getAuthority().equals(role));
+            if (!hasRole) {
+                throw new AccessDeniedException("User does not have the '" + role + "' role.");
+            }
+        }
     }
 
-    @MutationMapping
-    public UserEntity createUser(@Argument("input") @Valid CreateUserDTO userInput, @Argument String userTimeZone) throws UserFoundException {
-        if (userInput == null || userInput.getName() == null || userInput.getName().isEmpty()) {
-            throw new IllegalStateException("Input name cannot be null or empty");
+    private void validateNonEmptyString(String value, String fieldName) {
+        if (value == null || value.isEmpty()) {
+            throw new IllegalStateException(fieldName + " cannot be null or empty");
         }
-        logger.info("Creating user with email: {}", userInput.getEmail());
-        return userService.createUser(userInput, userTimeZone);
     }
 
-    @MutationMapping
-    @PreAuthorize("hasRole('USER')")
-    public UserEntity updateUser(
-            @Argument("input") @Valid UpdateUserDTO updateUserDTO,
-            @Argument("userTimeZone") String userTimeZone) throws UserNotFoundException, UserFoundException {
+    @SchemaMapping(typeName = "Query")
+    @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER', 'VENDOR')")
+    public UserEntity getUserByName(@Argument("input") GetUserByNameInput getUserByNameInput) throws UserNotFoundException {
+        validateNonEmptyString(getUserByNameInput.getName(), "Name");
+        logger.info("Fetching user by name: {}", getUserByNameInput.getName());
+        return userService.findUserByName(getUserByNameInput.getName())
+                .orElseThrow(() -> new UserNotFoundException("User with name: " + getUserByNameInput.getName() + " not found."));
+    }
 
-        Long id = updateUserDTO.getId();
+    @SchemaMapping(typeName = "Query")
+    @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER', 'VENDOR')")
+    public UserEntity getUserByEmail(@Argument("input") @Valid GetUserByEmailInput getUserByEmailInput) throws EmailNotFoundException {
+        validateNonEmptyString(getUserByEmailInput.getEmail(), "Email");
+        logger.info("Fetching user by email: {}", getUserByEmailInput.getEmail());
+        return userService.findByEmail(getUserByEmailInput.getEmail())
+                .orElseThrow(() -> new EmailNotFoundException("User with email: " + getUserByEmailInput.getEmail() + " not found."));
+    }
 
+    @SchemaMapping(typeName = "Mutation")
+    @PreAuthorize("hasAnyRole('GUEST')")
+    public UserEntity createUser(@Argument("input") @Valid CreateUserInput userInput, @Argument String userTimeZone) throws UserFoundException {
+        try {
+            return userService.createUser(userInput, userTimeZone);
+        } catch (UserFoundException | IllegalArgumentException e) {
+            throw new GraphQLException("Error creating user: " + e.getMessage());
+        }
+    }
+
+
+    @SchemaMapping(typeName = "Mutation")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
+    public UserEntity updateUser(@Argument("input") @Valid UpdateUserInput updateUserInput,
+                                 @Argument("userTimeZone") String userTimeZone, Principal principal) throws UserNotFoundException, UserFoundException {
+        checkRole(principal, "ROLE_CUSTOMER");
+
+        Long id = updateUserInput.getId();
         if (id == null) {
             throw new IllegalArgumentException("ID must not be null");
         }
 
         logger.info("Updating user with ID: {}", id);
-        return userService.updateUser(updateUserDTO, id, userTimeZone);
+
+        UserEntity user = userService.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User with ID " + id + " not found."));
+
+        return userService.updateUser(updateUserInput, id, userTimeZone);
     }
 
-    @MutationMapping
-    @PreAuthorize("hasRole('W3YNER$gsA3_admin')")
-    public UserEntity updateEmail(
-            @Argument("input") @Valid UpdateEmailDTO updateEmailDTO,
-            @Argument String userTimeZone) throws UserNotFoundException, UserFoundException {
+    @SchemaMapping(typeName = "Mutation")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
+    public UserEntity updateEmail(@Argument("input") @Valid UpdateEmailInput updateEmailInput,
+                                  @Argument String userTimeZone, Principal principal) throws UserNotFoundException, UserFoundException {
+        checkRole(principal, "ROLE_CUSTOMER");
 
-        Long id = updateEmailDTO.getId();
-
+        Long id = updateEmailInput.getId();
         if (id == null) {
             throw new IllegalStateException("ID must not be null");
         }
 
-        logger.info("Updating user with ID: {}", id);
-        return userService.updateEmail(updateEmailDTO, id, userTimeZone);
+        logger.info("Updating user email with ID: {}", id);
+        return userService.updateEmail(updateEmailInput, id, userTimeZone);
     }
 
-    //    TODO: IMPLEMENT AUTHENTICATION FOR THIS METHOD TO WORK
+    @SchemaMapping(typeName = "Mutation")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
+    public UserEntity updatePassword(UpdatePasswordInput updatePasswordInput, Long id,
+                                     String userTimeZone,
+                                     Principal principal) throws UserNotFoundException {
+        checkRole(principal, "ROLE_CUSTOMER");
 
-//    public UserEntity updatePassword(UpdatePasswordDTO updatePasswordDTO, String userTimeZone) throws UserNotFoundException {
-//        UserEntity existingUser = getUserByName(); // This would get the currently logged-in user
-//
-//        if (existingUser == null) {
-//            throw new UserNotFoundException("User not found.");
-//        }
-//
-//        // Update the password
-//        existingUser.setPassword(updatePasswordDTO.getUpdatedPassword());  // Update password from DTO
-//        existingUser.setUpdatedAt(OffsetDateTime.now(ZoneId.of(userTimeZone))); // Use the userTimeZone (as String)
-//
-//        return userService.save(existingUser); // Save the updated user
-//    }
+        // Verify time zone
+        ZoneId timeZone = ZoneId.of(userTimeZone);
 
-    @MutationMapping
-    @PreAuthorize("hasRole('W3YNER$gsA3_admin')")
-    public UserEntity deleteUser(
-            @Argument("input") @Valid DeleteUserDTO deleteUserDTO) throws UserNotFoundException {
+        // Find and update user password
+        UserEntity existingUser = userService.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("User not found."));
 
-        if (deleteUserDTO == null || deleteUserDTO.getId() == null) {
+        if (!updatePasswordInput.getUpdatedPassword().equals(updatePasswordInput.getConfirmPassword())) {
+            throw new IllegalArgumentException("Passwords do not match.");
+        }
+
+        String updatedPassword = updatePasswordInput.getUpdatedPassword();
+        if (updatedPassword.trim().isEmpty()) {
+            throw new IllegalArgumentException("Password must not be null or empty.");
+        }
+
+        if (updatedPassword.length() < 8) {
+            throw new IllegalArgumentException("Password must be at least 8 characters long.");
+        }
+
+        existingUser.setPassword(passwordEncoder.encode(updatedPassword));
+        existingUser.setUpdatedAt(OffsetDateTime.now(timeZone));
+
+        return userService.updatePassword(updatePasswordInput, id, userTimeZone);
+    }
+
+    @SchemaMapping(typeName = "Mutation")
+    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
+    public UserEntity deleteUser(@Argument("input") @Valid DeleteUserInput deleteUserInput, Principal principal) throws UserNotFoundException {
+        checkRole(principal, "ROLE_CUSTOMER");
+
+        if (deleteUserInput == null || deleteUserInput.getId() == null) {
             throw new IllegalArgumentException("ID must not be null");
         }
 
-        logger.info("Deleting user with ID: {}", deleteUserDTO.getId());
-        return userService.deleteUser(deleteUserDTO);
+        logger.info("Deleting user with ID: {}", deleteUserInput.getId());
+        return userService.deleteUser(deleteUserInput);
     }
 }

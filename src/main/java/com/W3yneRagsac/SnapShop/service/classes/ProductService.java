@@ -8,10 +8,12 @@ import com.W3yneRagsac.SnapShop.repository.ProductRepository;
 import com.W3yneRagsac.SnapShop.service.interfaces.IProductService;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
+import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.Optional;
 
+@Service
 public class ProductService implements IProductService {
 
     // Product repository is injected into the service to access the product data
@@ -108,16 +110,26 @@ public class ProductService implements IProductService {
 
     // Method to get a product by its ID
     @Override
-    public Optional<ProductEntity> getProductByID(GetProductByIdDTO getProductByIdDTO) {
+    public Optional<ProductEntity> getProductByID(Long productId) {
+        // Ensure the productId is not null or invalid
+        if (productId == null) {
+            throw new IllegalArgumentException("Product ID must be provided.");
+        }
+
         // Fetch the product from the repository using its ID
-        return productRepository.findById(getProductByIdDTO.getId());
+        return productRepository.getProductById(productId);
     }
+
+
 
     // Method to get a product by its name
     @Override
-    public Optional<ProductEntity> getProductByName(GetProductByNameDTO getProductByNameDTO) {
-        // Fetch the product from the repository using its name
-        return productRepository.getProductByName(getProductByNameDTO.getProductName());
+    public Optional<ProductEntity> getProductByName(String productName) {
+        if(productName == null) {
+            throw  new IllegalArgumentException("Product name must be provided");
+        }
+        // If passes the checks then get the name
+        return productRepository.getProductByName(productName);
     }
 
 }

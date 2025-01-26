@@ -1,22 +1,7 @@
-# Query for fetching a user by name or email
-type Query {
-    getUserByName(input: getByNameInput): User!
-    getUserByEmail(input: getByEmailInput): User!
-}
+# User type with fields for ID, name, email, password, and timestamps
 
-# Mutations for user-related operations
-type Mutation {
-    createUser(input: CreateUserInput!): User!
-    updateUser(input: UpdateUserInput!): User!
-    updateEmail(input: UpdateEmailInput!): User!
-    updatePassword(input: UpdatePasswordInput!): User!
-    deleteUser(input: DeleteUserInput!): User!
-}
-
-# Scalar for DateTime
 scalar DateTime
 
-# User type with fields for ID, name, email, password, and timestamps
 type User {
     id: ID!
     name: String!
@@ -53,14 +38,25 @@ input UpdatePasswordInput {
 }
 
 # Query input types for fetching users by name or email
-input getByNameInput {
+input GetUserByNameInput {
     name: String!
 }
 
-input getByEmailInput {
+input GetUserByEmailInput {
     email: String!
 }
 
 input DeleteUserInput {
     id: ID!
 }
+
+enum Role {
+    ADMIN
+    VENDOR
+    CUSTOMER
+    GUEST
+    MODERATOR
+    DELIVERY_PERSONNEL
+    SUPER_ADMIN
+}
+

@@ -1,53 +1,102 @@
 package com.W3yneRagsac.SnapShop.config.Security;
 
-import com.W3yneRagsac.SnapShop.config.Security.Filters.GraphQLSecurityFilter;
-import com.W3yneRagsac.SnapShop.service.classes.CustomOIDCUserService;
+import io.github.cdimascio.dotenv.Dotenv;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.oauth2.client.oidc.userinfo.OidcUserRequest;
-import org.springframework.security.oauth2.client.userinfo.OAuth2UserService;
-import org.springframework.security.oauth2.core.oidc.user.OidcUser;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.registration.InMemoryClientRegistrationRepository;
+import org.springframework.security.oauth2.core.AuthorizationGrantType;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.AuthenticationFilter;
+
+import java.util.Collections;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true) // Enable @PreAuthorize annotations
 public class SpringSecurityConfig {
 
-    // Bean for the custom OIDC user service
-    @Bean
-    public OAuth2UserService<OidcUserRequest, OidcUser> oAuth2UserService() {
-        return new CustomOIDCUserService(); // Return the custom OIDC user service instance
-    }
+    private static final Dotenv dotenv = Dotenv.load();
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable()) // Disable CSRF for now (enable in production with proper configuration)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/graphql").permitAll() // Public access
-                        .requestMatchers("/home", "/products").permitAll() // Public access
-                        .requestMatchers("/checkout", "/cart").authenticated() // Authentication required
-                        .anyRequest().permitAll()) // All other requests are allowed
-
-                .formLogin(login -> login
-                        .loginPage("/SnapShopLogin")
-                        .defaultSuccessUrl("/home", true) // Redirect to home after successful login
-                        .permitAll())
-
-                //Logout page
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/home")
-                        .permitAll())
-
+        http
+                // Disable CSRF protection
+                .csrf(customizer -> customizer.disable())
+                // Authorize HTTP requests
+                .authorizeHttpRequests(authz -> authz
+                        // Allow unrestricted access to specific paths
+                        .requestMatchers("/", "/public/**", "/redirect/snapshoplogin", "/error", "/graphql", "/home").permitAll()
+                        // Allow only the login mutation to be accessible publicly
+                        .requestMatchers("/graphql/mutations/login").permitAll()
+                        // Require roles for other GraphQL mutations (update, delete, etc.)
+                        .requestMatchers("/graphql/mutations/**").hasAnyRole("CUSTOMER", "VENDOR", "MODERATOR", "DELIVERY_PERSONNEL", "SUPER_ADMIN")
+                        .requestMatchers("/role").permitAll()
+                        // All other requests need authentication
+                        .anyRequest().authenticated() // Allow role-check endpoint
+                )
+                // Configure form login
+                .formLogin(form -> form
+                        .loginPage("/redirect/snapshoplogin") // Custom login page
+                        .permitAll() // Allow everyone to access login page
+                        .defaultSuccessUrl("/redirect/home", true) // Redirect after successful login
+                )
+                // Configure OAuth2 login
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfoEndpointConfig -> userInfoEndpointConfig
-                                .oidcUserService(oAuth2UserService()))) // Use custom OIDC user service for OAuth2 login
-
-                .addFilterBefore(new GraphQLSecurityFilter(), AuthenticationFilter.class); // Add custom security filter before authentication filter
+                        .loginPage("/redirect/snapshoplogin")
+                        .defaultSuccessUrl("/redirect/home", true)
+                )
+                // Configure logout
+                .logout(logout -> logout
+                        .logoutUrl("/redirect/logout")
+                        .permitAll()
+                )
+                // Handle exceptions
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, authException) ->
+                                response.sendRedirect("/redirect/snapshoplogin")) // Redirect unauthenticated users
+                        .accessDeniedPage("/redirect/access-denied") // Custom access-denied page
+                )
+                // Configure anonymous users
+                .anonymous(anonymous -> anonymous
+                        .principal("guest") // Principal name for unauthenticated users
+                        .authorities(Collections.singletonList(new SimpleGrantedAuthority("GUEST"))) // Assign GUEST role
+                );
 
         return http.build();
+    }
+
+    @Bean
+    public ClientRegistrationRepository clientRegistrationRepository() {
+        return new InMemoryClientRegistrationRepository(
+                ClientRegistration.withRegistrationId("google")
+                        .clientId(dotenv.get("GOOGLE_OAUTH_CLIENT_ID"))
+                        .clientSecret(dotenv.get("GOOGLE_OAUTH_CLIENT_SECRET"))
+                        .scope("profile", "email")
+                        .authorizationUri("https://accounts.google.com/o/oauth2/auth")
+                        .tokenUri("https://oauth2.googleapis.com/token")
+                        .clientName("Google")
+                        .authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                        .redirectUri("{baseUrl}/login/oauth2/code/{registrationId}")
+                        .build()
+        );
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class).build();
     }
 }

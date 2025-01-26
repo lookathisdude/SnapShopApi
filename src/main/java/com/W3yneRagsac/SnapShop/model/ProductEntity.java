@@ -3,7 +3,9 @@ package com.W3yneRagsac.SnapShop.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Entity
 @Data
@@ -51,6 +53,10 @@ public class ProductEntity {
 //    @ManyToOne
 //    @JoinColumn(name = "seller_id")
 //    private Seller seller;  // Assuming you have a Seller entity
+
+    // For the role requirement to handle the product api
+    @ManyToMany(fetch = FetchType.EAGER)
+    private Set<RoleEntity> roles = new HashSet<>();
 
     @ManyToMany
     @JoinTable(

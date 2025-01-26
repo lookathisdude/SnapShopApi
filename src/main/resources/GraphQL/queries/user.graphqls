@@ -1,4 +1,7 @@
 # User type with fields for ID, name, email, password, and timestamps
+
+scalar DateTime
+
 type User {
     id: ID!
     name: String!
@@ -35,11 +38,11 @@ input UpdatePasswordInput {
 }
 
 # Query input types for fetching users by name or email
-input getByNameInput {
+input GetUserByNameInput {
     name: String!
 }
 
-input getByEmailInput {
+input GetUserByEmailInput {
     email: String!
 }
 
@@ -57,3 +60,8 @@ enum Role {
     SUPER_ADMIN
 }
 
+#Authentication
+type AuthPayload {
+    token: String
+    message: String
+}

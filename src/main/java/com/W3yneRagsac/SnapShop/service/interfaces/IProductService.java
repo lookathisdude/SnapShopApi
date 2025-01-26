@@ -12,7 +12,8 @@ public interface IProductService {
     ProductEntity createProduct(CreateProductDTO createProductDTO, String timeZone) throws UserFoundException, ProductAlreadyFoundException;
     ProductEntity updateProduct(UpdatedProductDTO updatedProductDTO, String timeZone) throws ProductNotFoundException;
     ProductEntity deleteProduct(DeleteProductDTO deleteProductDTO, String timeZone) throws ProductNotFoundException;
-    Optional <ProductEntity> getProductByID(GetProductByIdDTO getProductByIdDTO);
-    Optional <ProductEntity> getProductByName(GetProductByNameDTO getProductByNameDTO);
-
+    // Method to get a product by its ID
+    Optional<ProductEntity> getProductByID(Long productId);
+    // Method to get a product by its name
+    Optional<ProductEntity> getProductByName(String productName);
 }

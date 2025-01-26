@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class GetProductByIdDTO {
-    private Long id;
+    Long id;
 }

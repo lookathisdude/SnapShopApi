@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Home</title>
+</head>
+<body>
+
+<h1>Welcome to the Home Page</h1>
+
+<!-- Show message if the user is a guest -->
+<div th:if="${#authentication.authorities.contains('GUEST')}">
+    <p>Welcome, Guest!</p>
+</div>
+
+<!-- You can add more personalized content based on roles -->
+<div th:if="${#authentication.authorities.contains('CUSTOMER')}">
+    <p>Welcome, User!</p>
+</div>
+
+</body>
+</html>

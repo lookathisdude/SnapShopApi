@@ -8,12 +8,12 @@ import com.W3yneRagsac.SnapShop.model.UserEntity;
 import java.util.Optional;
 
 public interface IUserService {
-    UserEntity createUser(CreateUserDTO createUserDTO, String userTimeZone) throws UserFoundException;
+    UserEntity createUser(CreateUserInput createUserInput, String userTimeZone) throws UserFoundException;
     Optional<UserEntity> findUserByName(String name);
-    UserEntity updateUser(UpdateUserDTO updateUserDTO, Long id, String userTimeZone) throws UserNotFoundException, UserFoundException;
-    UserEntity updateEmail(UpdateEmailDTO updateEmailDTO, Long id, String userTimeZone) throws UserNotFoundException, UserFoundException;
-    UserEntity updatePassword(UpdatePasswordDTO updatePasswordDTO, Long id, String userTimeZone) throws UserNotFoundException;
-    UserEntity deleteUser(DeleteUserDTO deleteUserDTO) throws UserNotFoundException;
+    UserEntity updateUser(UpdateUserInput updateUserInput, Long id, String userTimeZone) throws UserNotFoundException, UserFoundException;
+    UserEntity updateEmail(UpdateEmailInput updateEmailInput, Long id, String userTimeZone) throws UserNotFoundException, UserFoundException;
+    UserEntity updatePassword(UpdatePasswordInput updatePasswordInput, Long id, String userTimeZone) throws UserNotFoundException;
+    UserEntity deleteUser(DeleteUserInput deleteUserDTO) throws UserNotFoundException;
     Optional<UserEntity> findByEmail(String email);
     Optional<UserEntity> findById(Long id);
 }
