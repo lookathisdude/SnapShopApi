@@ -4,7 +4,7 @@ import com.W3yneRagsac.SnapShop.DTO.Product.*;
 import com.W3yneRagsac.SnapShop.exceptions.ProductAlreadyFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.ProductNotFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.UserFoundException;
-import com.W3yneRagsac.SnapShop.model.ProductEntity;
+import com.W3yneRagsac.SnapShop.model.Entity.ProductEntity;
 
 import java.util.Optional;
 

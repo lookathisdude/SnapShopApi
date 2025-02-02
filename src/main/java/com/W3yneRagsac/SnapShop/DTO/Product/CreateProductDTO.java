@@ -1,6 +1,5 @@
 package com.W3yneRagsac.SnapShop.DTO.Product;
 
-import com.W3yneRagsac.SnapShop.model.ProductEntity;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -21,7 +20,7 @@ public class CreateProductDTO {
     private String productDescription;
 
     @NotNull(message = "Price cannot be null")
-    private Float price;
+    private Double price;
 
     @NotNull(message = "Currency cannot be null")
     @Size(min = 3, max = 3, message = "Currency code must be exactly 3 characters (e.g., USD)")

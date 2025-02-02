@@ -4,7 +4,7 @@ import com.W3yneRagsac.SnapShop.DTO.Product.CreateProductDTO;
 import com.W3yneRagsac.SnapShop.DTO.Product.UpdatedProductDTO;
 import com.W3yneRagsac.SnapShop.exceptions.ProductAlreadyFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.ProductNotFoundException;
-import com.W3yneRagsac.SnapShop.model.ProductEntity;
+import com.W3yneRagsac.SnapShop.model.Entity.ProductEntity;
 import com.W3yneRagsac.SnapShop.service.classes.ProductService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -12,12 +12,8 @@ import org.springframework.graphql.data.method.annotation.Argument;
 import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.BindingResult;
-
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 
 @Controller
 public class ProductResolver {
@@ -75,18 +71,36 @@ public class ProductResolver {
             throw new RuntimeException("Failed to create product: " + e.getMessage());
         }
     }
+    @MutationMapping
+    @PreAuthorize("hasRole('VENDOR'")
+    public ProductEntity updateProduct(@Argument("input")UpdatedProductDTO updatedProductDTO, String timeZone,
+    BindingResult bindingResult) {
+        // Check for validation errors
+        if(bindingResult.hasErrors()) {
+            // Collect all validation error messages
+            StringBuilder errorMessage = new StringBuilder("Validation failed: "); // it will show validation failed when it has errors
+            bindingResult.getAllErrors().forEach(error -> errorMessage.append(error.getDefaultMessage()).append("; "));
+            throw new IllegalArgumentException(errorMessage.toString());
+        }
 
-//    TODO: IMPLEMENT THE ROLES
-//    @MutationMapping
-//    @PreAuthorize("hasRole('Seller'")
-//    public ProductEntity updateProduct(@Argument("input")UpdatedProductDTO updatedProductDTO, String timeZone,
-//    BindingResult bindingResult) {
-//        // Check for validation errors
-//        if(bindingResult.hasErrors()) {
-//            // Collect all validation error messages
-//            StringBuilder errorMessage = new StringBuilder("Validation failed: "); // it will show validation failed when it has errors
-//            bindingResult.getAllErrors().forEach(error -> errorMessage.append(error.getDefaultMessage()).append("; "));
-//            throw new IllegalArgumentException(errorMessage.toString());
-//        }
-//    }
+        // check if the product name or id is there
+        if(updatedProductDTO.getProductName() == null || updatedProductDTO.getProductName()
+                .trim().isEmpty()) {
+            throw new IllegalArgumentException("Product name is required.");
+        }
+
+        if(updatedProductDTO.getProductId() == null ) {
+            throw new IllegalArgumentException("Product id is required");
+        }
+
+        ProductEntity existingProduct = productService.getProductByID(updatedProductDTO.getProductId())
+                .orElseThrow(() -> new IllegalArgumentException("Product with id: "
+                 + updatedProductDTO.getProductId() + " not found"));
+
+    try {
+        return productService.updateProduct(updatedProductDTO, timeZone);
+    }  catch (ProductNotFoundException e) {
+        throw new RuntimeException(e);
+    }
+    }
 }

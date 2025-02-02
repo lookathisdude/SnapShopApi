@@ -1,57 +1,38 @@
 package com.W3yneRagsac.SnapShop.resolvers;
 
-import com.W3yneRagsac.SnapShop.config.Handlers.JwtUtil;
-import com.W3yneRagsac.SnapShop.repository.UserRepository;
-import graphql.kickstart.tools.GraphQLMutationResolver;
-import lombok.Data;
-import org.springframework.graphql.data.method.annotation.Argument;
-import org.springframework.graphql.data.method.annotation.MutationMapping;
+import com.W3yneRagsac.SnapShop.service.classes.JwtUtilService;
+import com.W3yneRagsac.SnapShop.model.Entity.AuthPayloadEntity;
+import com.W3yneRagsac.SnapShop.service.classes.UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.graphql.data.method.annotation.MutationMapping;
+import org.springframework.graphql.data.method.annotation.Argument;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.stereotype.Controller;
 
-@Component
-public class AuthResolver implements GraphQLMutationResolver {
+@RequiredArgsConstructor
+@Controller
+public class AuthResolver {
 
-    private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
+    private final JwtUtilService jwtUtilService;
     private final AuthenticationManager authenticationManager;
-
-    public AuthResolver(UserRepository userRepository, PasswordEncoder passwordEncoder, JwtUtil jwtUtil, AuthenticationManager authenticationManager) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
-        this.jwtUtil = jwtUtil;
-        this.authenticationManager = authenticationManager;
-    }
+    private final UserDetailsService userDetailsService;
+    private final UserService userService;
 
     @MutationMapping
-    public AuthPayload login(@Argument String username, @Argument String password) {
-        // Attempt authentication
+    public AuthPayloadEntity login(@Argument String email, @Argument String password) {
         try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password)
-            );
-
-            // Generate the JWT token if authentication is successful
-            String token = jwtUtil.generateToken(username);
-
-            return new AuthPayload(token, "Login successful");
-
+            // Authenticate user and generate token with roles
+            return userService.login(email, password);
+        } catch (BadCredentialsException e) {
+            System.out.println("Authentication failed for email: " + email);  // Debug line
+            return new AuthPayloadEntity(null, "Invalid credentials", null);
         } catch (Exception e) {
-            return new AuthPayload(null, "Invalid credentials");
-        }
-    }
-
-    @Data
-    public static class AuthPayload {
-        private String token;
-        private String message;
-
-        public AuthPayload(String token, String message) {
-            this.token = token;
-            this.message = message;
+            System.out.println("An error occurred during login: " + e.getMessage());  // Debug line
+            return new AuthPayloadEntity(null, "Error occurred", null);
         }
     }
 }
+
+

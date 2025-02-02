@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 @Data
-public class GetUserByNameInput {
-    @NotNull(message = "Username cannot be null")
-    String name;
+public class GetUserByIdInput {
+    @NotNull(message = "The id cannot be null")
+    private Long id;
 }

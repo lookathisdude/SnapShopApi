@@ -1,10 +1,12 @@
-package com.W3yneRagsac.SnapShop.model;
+package com.W3yneRagsac.SnapShop.model.Entity;
 
 import com.W3yneRagsac.SnapShop.model.enums.Roles;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.*;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 @Entity
 public class RoleEntity {
     @Id
@@ -12,5 +14,10 @@ public class RoleEntity {
     private Long id;
 
     @Enumerated(EnumType.STRING)
+    @Column(name = "role")
     private Roles role;
+
+    public RoleEntity(Roles roles) {
+        this.role = roles;
+    }
 }

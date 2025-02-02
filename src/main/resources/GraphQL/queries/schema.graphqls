@@ -1,20 +1,41 @@
 type Query {
-    getUserByName(input: GetUserByNameInput!): User!
-    getUserByEmail(input: GetUserByEmailInput!): User!
-    getProductById(input: getProductByIdDTO!): Product!
-    getProductByName(input: getProductByNameDTO!): Product!
+    # User Queries
+    getUserById(input: getUserByIdInput!): User!
+    searchUsers(filter: UserFilterInput): User!
+
+
+    # Product Queries
+    getProductById(input:  getProductByIdInput!): Product!
+    getProductByName(input: getProductByNameInput): Product!
+
+    # Vendor Queries
+    getVendorById(input: GetVendorById!): Vendor!
+    searchVendors(filter: VendorFilter): [Vendor]!
+
+    # Delivery Personnel Queries
+    getDeliveryPersonnelById(input: GetDeliveryPersonnelById!): DeliveryPersonnel!
+    searchDeliveryPersonnel(filter: DeliveryPersonnelFilter): [DeliveryPersonnel]!
 }
 
 type Mutation {
+    # User Mutations
     createUser(input: CreateUserInput!): User!
-    updateUser(input: UpdateUserInput!): User!
-    updateEmail(input: UpdateEmailInput!): User!
-    updatePassword(input: UpdatePasswordInput!): User!
+    updateUserCredentials(input: UpdateUserCredentialsInput): User!
     deleteUser(input: DeleteUserInput!): User!
-    createProduct(id: ID!, input: createProductDTO!): Product!
-    updatedProduct(id: ID!, input: updateProductDTO!): Product!
+
+    # Authentication
+    login(email: String!, password: String!): AuthPayload!
+
+    # Product Mutations
+    createProduct(input: createProductInput!): Product!
+    updateProduct(input: updateProductInput): Product!
     deleteProduct(id: ID!): Product!
 
-    #Authenticated
-    login(username: String!, password: String!): AuthPayload!
+    # Vendor Mutations
+    registerVendor(input: CreateVendorInput!): Vendor!
+    updateVendor(input: UpdateVendorInput): Vendor!
+
+    # Delivery Personnel Mutations
+    registerDeliveryPersonnel(input: CreateDeliveryPersonnelInput!): DeliveryPersonnel!
+    updateDeliveryPersonnel(input: UpdateDeliveryPersonnelInput): DeliveryPersonnel!
 }

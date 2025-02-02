@@ -29,6 +29,8 @@ public class AuthenticatedSuccess implements AuthenticationSuccessHandler {
                 return updatedAuthorities;
             }
 
+
+
             @Override
             public Object getCredentials() {
                 return authentication.getCredentials();

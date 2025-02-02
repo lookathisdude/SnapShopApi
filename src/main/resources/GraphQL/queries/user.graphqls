@@ -1,10 +1,9 @@
 # User type with fields for ID, name, email, password, and timestamps
-
 scalar DateTime
 
 type User {
     id: ID!
-    name: String!
+    username: String!
     email: String!
     password: String!
     isPresent: Boolean!
@@ -22,35 +21,40 @@ input CreateUserInput {
     userTimeZone: String
 }
 
-input UpdateUserInput {
+input UpdateUserCredentialsInput {
     id: ID!
-    user: String!
-}
-
-input UpdateEmailInput {
-    id: ID!
-    email: String!
-}
-
-input UpdatePasswordInput {
-    updatedPassword: String!
-    confirmedPassword: String!
+    email: String
+    user: String
+    updatedPassword: String
+    confirmedPassword: String
 }
 
 # Query input types for fetching users by name or email
-input GetUserByNameInput {
-    name: String!
+input getUserByNameOrEmailInput {
+    name: String
+    email: String
 }
 
-input GetUserByEmailInput {
-    email: String!
+input getUserByIdInput {
+    id: ID!
 }
 
 input DeleteUserInput {
     id: ID!
 }
 
-enum Role {
+# New filter for users, including options for username, email, isPresent, and more
+input UserFilterInput {
+    username: String
+    email: String
+    isPresent: Boolean
+    userTimeZone: String
+    role: [Roles]
+}
+
+
+# A list of different roles for the app
+enum Roles {
     ADMIN
     VENDOR
     CUSTOMER
@@ -60,8 +64,9 @@ enum Role {
     SUPER_ADMIN
 }
 
-#Authentication
+# Authentication type
 type AuthPayload {
     token: String
     message: String
+    roles: [Roles]
 }

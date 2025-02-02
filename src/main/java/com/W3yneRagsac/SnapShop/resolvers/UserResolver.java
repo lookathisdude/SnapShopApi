@@ -1,10 +1,9 @@
 package com.W3yneRagsac.SnapShop.resolvers;
 
 import com.W3yneRagsac.SnapShop.DTO.User.*;
-import com.W3yneRagsac.SnapShop.exceptions.EmailNotFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.UserFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.UserNotFoundException;
-import com.W3yneRagsac.SnapShop.model.UserEntity;
+import com.W3yneRagsac.SnapShop.model.Entity.UserEntity;
 import com.W3yneRagsac.SnapShop.service.classes.UserService;
 import graphql.GraphQLException;
 import jakarta.validation.Valid;
@@ -20,8 +19,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 @Controller
 public class UserResolver {
@@ -59,25 +59,42 @@ public class UserResolver {
     }
 
     @SchemaMapping(typeName = "Query")
-    @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER', 'VENDOR')")
-    public UserEntity getUserByName(@Argument("input") GetUserByNameInput getUserByNameInput) throws UserNotFoundException {
-        validateNonEmptyString(getUserByNameInput.getName(), "Name");
-        logger.info("Fetching user by name: {}", getUserByNameInput.getName());
-        return userService.findUserByName(getUserByNameInput.getName())
-                .orElseThrow(() -> new UserNotFoundException("User with name: " + getUserByNameInput.getName() + " not found."));
+    @PreAuthorize("hasAnyRole('ROLE_GUEST', 'ROLE_CUSTOMER')")
+    public UserEntity getUserById(@Argument("input") @Valid GetUserByIdInput getUserByIdInput) throws UserNotFoundException {
+        if(getUserByIdInput.getId() == null) {
+            throw new IllegalArgumentException("Id must not be null");
+        }
+
+        return userService.getUserById(getUserByIdInput);
     }
 
     @SchemaMapping(typeName = "Query")
-    @PreAuthorize("hasAnyRole('GUEST', 'CUSTOMER', 'VENDOR')")
-    public UserEntity getUserByEmail(@Argument("input") @Valid GetUserByEmailInput getUserByEmailInput) throws EmailNotFoundException {
-        validateNonEmptyString(getUserByEmailInput.getEmail(), "Email");
-        logger.info("Fetching user by email: {}", getUserByEmailInput.getEmail());
-        return userService.findByEmail(getUserByEmailInput.getEmail())
-                .orElseThrow(() -> new EmailNotFoundException("User with email: " + getUserByEmailInput.getEmail() + " not found."));
+    @PreAuthorize("hasAnyRole('ROLE_GUEST', 'ROLE_CUSTOMER')")
+    public UserEntity searchUsers(@Argument("filter") @Valid SearchUsersInput userFilterInput) {
+        try {
+            List<UserEntity> users = userService.getUserByFilter(userFilterInput);
+
+            if (users == null || users.isEmpty()) {
+                throw new RuntimeException("No users match the provided filter.");
+            }
+
+            if (users.size() > 1) {
+
+                return users.getFirst();
+            }
+
+            return users.getFirst();
+        } catch (Exception e) {
+            // Log the exception or handle it based on your logging setup
+            logger.error("Error occurred while searching for users with filter: {}", userFilterInput, e);
+            throw new RuntimeException("An error occurred while searching for users: " + e.getMessage());
+        }
     }
 
+
+
     @SchemaMapping(typeName = "Mutation")
-    @PreAuthorize("hasAnyRole('GUEST')")
+    @PreAuthorize("hasAnyRole('ROLE_GUEST') or !isAuthenticated()")
     public UserEntity createUser(@Argument("input") @Valid CreateUserInput userInput, @Argument String userTimeZone) throws UserFoundException {
         try {
             return userService.createUser(userInput, userTimeZone);
@@ -88,74 +105,43 @@ public class UserResolver {
 
 
     @SchemaMapping(typeName = "Mutation")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
-    public UserEntity updateUser(@Argument("input") @Valid UpdateUserInput updateUserInput,
-                                 @Argument("userTimeZone") String userTimeZone, Principal principal) throws UserNotFoundException, UserFoundException {
+    @PreAuthorize("hasAnyRole('ROLE_CUSTOMER', 'ROLE_VENDOR')")
+    public UserEntity updateUserCredentials(
+            @Argument("input") @Valid UpdateUserCredentialsInput updateUserCredentialsInput,
+            @Argument("userTimeZone") String userTimeZone,
+            Principal principal
+    ) throws UserNotFoundException, UserFoundException {
+
+        // Ensure the principal has the required role
         checkRole(principal, "ROLE_CUSTOMER");
 
-        Long id = updateUserInput.getId();
+        // Retrieve the user ID from the input and check for null
+        Long id = updateUserCredentialsInput.getId();
         if (id == null) {
             throw new IllegalArgumentException("ID must not be null");
         }
 
+        // Log the update action
         logger.info("Updating user with ID: {}", id);
 
-        UserEntity user = userService.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User with ID " + id + " not found."));
+        // Create GetUserByIdInput using the retrieved ID
+        GetUserByIdInput getUserByIdInput = new GetUserByIdInput();
+        getUserByIdInput.setId(id);
 
-        return userService.updateUser(updateUserInput, id, userTimeZone);
+        // Retrieve the user entity by ID from the user service
+        UserEntity user = userService.getUserById(getUserByIdInput);
+
+        // Update the user credentials and return the updated user
+        return userService.updateUserCredentials(updateUserCredentialsInput, id, userTimeZone);
     }
 
-    @SchemaMapping(typeName = "Mutation")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
-    public UserEntity updateEmail(@Argument("input") @Valid UpdateEmailInput updateEmailInput,
-                                  @Argument String userTimeZone, Principal principal) throws UserNotFoundException, UserFoundException {
-        checkRole(principal, "ROLE_CUSTOMER");
 
-        Long id = updateEmailInput.getId();
-        if (id == null) {
-            throw new IllegalStateException("ID must not be null");
-        }
 
-        logger.info("Updating user email with ID: {}", id);
-        return userService.updateEmail(updateEmailInput, id, userTimeZone);
-    }
+
+
 
     @SchemaMapping(typeName = "Mutation")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
-    public UserEntity updatePassword(UpdatePasswordInput updatePasswordInput, Long id,
-                                     String userTimeZone,
-                                     Principal principal) throws UserNotFoundException {
-        checkRole(principal, "ROLE_CUSTOMER");
-
-        // Verify time zone
-        ZoneId timeZone = ZoneId.of(userTimeZone);
-
-        // Find and update user password
-        UserEntity existingUser = userService.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
-
-        if (!updatePasswordInput.getUpdatedPassword().equals(updatePasswordInput.getConfirmPassword())) {
-            throw new IllegalArgumentException("Passwords do not match.");
-        }
-
-        String updatedPassword = updatePasswordInput.getUpdatedPassword();
-        if (updatedPassword.trim().isEmpty()) {
-            throw new IllegalArgumentException("Password must not be null or empty.");
-        }
-
-        if (updatedPassword.length() < 8) {
-            throw new IllegalArgumentException("Password must be at least 8 characters long.");
-        }
-
-        existingUser.setPassword(passwordEncoder.encode(updatedPassword));
-        existingUser.setUpdatedAt(OffsetDateTime.now(timeZone));
-
-        return userService.updatePassword(updatePasswordInput, id, userTimeZone);
-    }
-
-    @SchemaMapping(typeName = "Mutation")
-    @PreAuthorize("hasAnyRole('CUSTOMER', 'VENDOR')")
+    @PreAuthorize("hasAnyRole('ROLE_CUSTOMER', 'ROLE_VENDOR')")
     public UserEntity deleteUser(@Argument("input") @Valid DeleteUserInput deleteUserInput, Principal principal) throws UserNotFoundException {
         checkRole(principal, "ROLE_CUSTOMER");
 

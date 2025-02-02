@@ -1,0 +1,86 @@
+# Vendor Type
+type Vendor {
+    vendorId: ID!
+    vendorName: String!
+    vendorEmail: String!
+    vendorPhoneNumber: String
+    storeName: String!
+    products: [Product]!
+}
+
+# Delivery Personnel Type
+type DeliveryPersonnel {
+    deliveryPersonnelId: ID!
+    deliveryPersonnelName: String!
+    deliveryPersonnelEmail: String!
+    deliveryPersonnelPhoneNumber: String
+    vehicleType: String
+    deliverySchedule: String
+}
+
+# Vendor Inputs
+input CreateVendorInput {
+    vendorName: String!
+    vendorEmail: String!
+    vendorPhoneNumber: String
+    storeName: String!
+    productIds: [ID!]!
+}
+
+input UpdateVendorInput {
+    vendorId: ID!
+    vendorName: String
+    vendorEmail: String
+    vendorPhoneNumber: String
+    storeName: String
+    productIds: [ID!]
+}
+
+input VendorFilter {
+    vendorName: String
+    vendorEmail: String
+    vendorPhoneNumber: String
+    storeName: String
+}
+
+input GetVendorById {
+    vendorId: ID!
+}
+
+# Delivery Personnel Inputs
+input CreateDeliveryPersonnelInput {
+    deliveryPersonnelName: String!
+    deliveryPersonnelEmail: String!
+    deliveryPersonnelPhoneNumber: String
+    vehicleType: String
+    deliverySchedule: String
+}
+
+input UpdateDeliveryPersonnelInput {
+    deliveryPersonnelId: ID!
+    deliveryPersonnelName: String
+    deliveryPersonnelEmail: String
+    deliveryPersonnelPhoneNumber: String
+    vehicleType: String
+    deliverySchedule: String
+}
+
+input GetDeliveryPersonnelByNameOrEmail {
+    deliveryPersonnelName: String
+    deliveryPersonnelEmail: String
+}
+
+input GetDeliveryPersonnelById {
+    deliveryPersonnelId: ID!
+}
+
+input DeleteDeliveryPersonnelInput {
+    deliveryPersonnelId: ID!
+}
+
+input DeliveryPersonnelFilter {
+    vendorName: String
+    vendorEmail: String
+    vendorPhoneNumber: String
+    storeName: String
+}

@@ -13,17 +13,11 @@ type Product {
     reviews: [Review]
     createdAt: String!
     updatedAt: String!
-    seller: Seller
+    vendor: Vendor
     relatedProducts: [Product]
 }
 
-type Seller {
-    name: String!
-    description: String!
-    dateOfCreation: String!
-}
-
-input createProductDTO{
+input createProductInput{
     productName: String!
     productDescription: String!
     price: Float!
@@ -34,7 +28,22 @@ input createProductDTO{
     tags: [String]
 }
 
- input updateProductDTO{
+input ProductFilter {
+    name: String
+    priceMin: Float
+    priceMax: Float
+    currency: String
+    category: String
+    stockMin: Int
+    stockMax: Int
+    tags: [String]
+    ratingMin: Float
+    ratingMax: Float
+}
+
+
+ input updateProductInput{
+     id: ID!
      productName: String
      productDescription: String
      price: Float
@@ -45,11 +54,10 @@ input createProductDTO{
      tags: [String]
 }
 
-input getProductByIdDTO{
+input getProductByIdInput{
     id:ID!
 }
 
-input getProductByNameDTO {
-    id: ID!
+input getProductByNameInput {
     productName: String!
 }

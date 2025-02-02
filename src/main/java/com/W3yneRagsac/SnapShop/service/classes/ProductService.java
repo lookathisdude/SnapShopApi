@@ -3,13 +3,14 @@ package com.W3yneRagsac.SnapShop.service.classes;
 import com.W3yneRagsac.SnapShop.DTO.Product.*;
 import com.W3yneRagsac.SnapShop.exceptions.ProductAlreadyFoundException;
 import com.W3yneRagsac.SnapShop.exceptions.ProductNotFoundException;
-import com.W3yneRagsac.SnapShop.model.ProductEntity;
+import com.W3yneRagsac.SnapShop.model.Entity.ProductEntity;
 import com.W3yneRagsac.SnapShop.repository.ProductRepository;
 import com.W3yneRagsac.SnapShop.service.interfaces.IProductService;
 import org.springframework.beans.BeanWrapper;
 import org.springframework.beans.BeanWrapperImpl;
 import org.springframework.stereotype.Service;
 
+import java.time.OffsetDateTime;
 import java.util.*;
 import java.util.Optional;
 
@@ -51,23 +52,23 @@ public class ProductService implements IProductService {
         timeZone = getProductTimeZone(timeZone);
 
         // Check if a product with the same name already exists
-        if (productRepository.getProductByName(createProductDTO.getProductName()).isPresent()) {
+        if (productRepository.findByProductName(createProductDTO.getProductName()).isPresent()) {
             throw new ProductAlreadyFoundException("Product with the name you put already exists");
         }
 
         // Create a new product entity and populate it with data from the DTO
         ProductEntity productEntity = new ProductEntity();
-        productEntity.setName(createProductDTO.getProductName());
-        productEntity.setDescription(createProductDTO.getProductDescription());
-        productEntity.setPrice(createProductDTO.getPrice());
+        productEntity.setProductName(createProductDTO.getProductName());
+        productEntity.setProductDescription(createProductDTO.getProductDescription());
+        productEntity.setProductPrice(createProductDTO.getPrice());
         productEntity.setCurrency(createProductDTO.getCurrency());
-        productEntity.setCategory(createProductDTO.getCategory());
-        productEntity.setStock(createProductDTO.getStock());
-        productEntity.setImage(createProductDTO.getImage());
-        productEntity.setTags(createProductDTO.getTags());
-        productEntity.setRating(0.0f); // Default rating when creating a new product
-        productEntity.setCreatedAt(timeZone);
-        productEntity.setUpdatedAt(timeZone);
+        productEntity.setProductCategory(createProductDTO.getCategory());
+        productEntity.setProductStock(createProductDTO.getStock());
+        productEntity.setProductImage(createProductDTO.getImage());
+        productEntity.setProductTags(createProductDTO.getTags());
+        productEntity.setProductRating(0.0f); // Default rating when creating a new product
+        productEntity.setCreatedAt(OffsetDateTime.parse(timeZone));
+        productEntity.setUpdatedAt(OffsetDateTime.parse(timeZone));
 
         // Save and return the newly created product
         return productRepository.save(productEntity);
@@ -80,7 +81,7 @@ public class ProductService implements IProductService {
         timeZone = getProductTimeZone(timeZone);
 
         // Check if the product exists
-        ProductEntity existingProduct = productRepository.getProductById(updatedProductDTO.getProductId())
+        ProductEntity existingProduct = productRepository.findByProductId(updatedProductDTO.getProductId())
                 .orElseThrow(() -> new ProductNotFoundException("The product you're trying to update doesn't exist"));
 
         // Update the product's attributes using the non-null values from the DTO
@@ -88,7 +89,7 @@ public class ProductService implements IProductService {
                 getNullPropertyNames(updatedProductDTO));
 
         // Set the update timestamp
-        existingProduct.setUpdatedAt(timeZone);
+        existingProduct.setUpdatedAt(OffsetDateTime.parse(timeZone));
 
         // Save and return the updated product
         return productRepository.save(existingProduct);
@@ -117,7 +118,7 @@ public class ProductService implements IProductService {
         }
 
         // Fetch the product from the repository using its ID
-        return productRepository.getProductById(productId);
+        return productRepository.findByProductId(productId);
     }
 
 
@@ -129,7 +130,7 @@ public class ProductService implements IProductService {
             throw  new IllegalArgumentException("Product name must be provided");
         }
         // If passes the checks then get the name
-        return productRepository.getProductByName(productName);
+        return productRepository.findByProductName(productName);
     }
 
 }
